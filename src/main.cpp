@@ -36,6 +36,9 @@ static SDL_GLContext gl_context;
 
 static int location;
 
+static float r = 0.0f;
+static float increment = 0.05f;
+
 static float positions[] = {
    -0.5f, -0.5f,
 	0.5f, -0.5f,
@@ -121,10 +124,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 	} 
 
 	else if (game_state == PLAYING) {
-
-		float r = 0.0f;
-		float increment = 0.05f;
-		
+	
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		GLClearError();
