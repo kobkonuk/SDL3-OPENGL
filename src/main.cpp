@@ -6,11 +6,17 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <string>
 
 #include "renderer.h"
+#include "vertexbuffer.h"
+#include "indexbuffer.h"
+#include "vertexarray.h"
+#include "shader.h"
+
 
 typedef enum {
-	MENU,
+MENU,
 	PLAYING,
 	PAUSE,
 	GAME_OVER,
@@ -18,17 +24,30 @@ typedef enum {
 } GameState;
 
 static GameState game_state = PLAYING;
-static SDL_Window *window = NULL;
-static SDL_GLContext gl_context;
-static unsigned int vao;
-static unsigned int buffer;
-static unsigned int ibo;
-static unsigned int shader;
+static SDL_Window *window = nullptr;
 
-static float r = 0.0f;
-static float increment = 0.05f;
+static VertexBufferLayout* layout = nullptr;
+static VertexBuffer* vb = nullptr;
+static IndexBuffer* ib = nullptr;
+static VertexArray* va = nullptr;
+static Shader* shader = nullptr;
+
+static SDL_GLContext gl_context;
 
 static int location;
+
+static float positions[] = {
+   -0.5f, -0.5f,
+	0.5f, -0.5f,
+	0.5f,  0.5f,
+
+   -0.5f,  0.5f,
+};
+
+static unsigned int indices[] = {
+	0, 1, 2,
+	2, 3, 0
+};
 
 static void GLClearError() {
 	while (glGetError() != GL_NO_ERROR);
@@ -39,78 +58,6 @@ static void GLCheckError() {
 		std::cout << "[OpenGL fail] ( " << error << " )" << std::endl;
 	}
 }
-
-struct ShaderProgramSource {
-	std::string VertexSource;
-	std::string FragmentSource;
-};
-
-static ShaderProgramSource ParseShader(const std::string& filepath) {
-	std::ifstream stream(filepath);
-	
-	enum class ShaderType {
-		NONE = -1, VERTEX = 0, FRAGMENT = 1
-	};
-
-	std::string line;
-	std::stringstream ss[2];
-
-	ShaderType type = ShaderType::NONE;
-
-	while(getline(stream, line)) {
-		if (line.find("#shader") != std::string::npos) {
-			if (line.find("vertex") != std::string::npos)
-				type = ShaderType::VERTEX;
-			else if (line.find("fragment") != std::string::npos)
-				type = ShaderType::FRAGMENT;
-		}
-		else {
-			ss[(int)type] << line << '\n';
-		}
-	}
-
-	return { ss[0].str(), ss[1].str() };
-}
-
-static unsigned int CompileShader(unsigned int type, const std::string& source) {
-	unsigned int id = glCreateShader(type);
-	const char* src = source.c_str();
-	glShaderSource(id, 1, &src, nullptr);
-	glCompileShader(id);
-
-	int result = 0;
-	glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-	if (result == GL_FALSE) {
-		int length = 0;
-		glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-		char* message = (char*)alloca(length * sizeof(char));
-		glGetShaderInfoLog(id, length, &length, message);
-		std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << "shader" << std::endl;
-		std::cout << message << std::endl;
-
-		glDeleteShader(id);
-		return 0;
-	}
-
-	return id;
-}
-
-static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader) {
-	unsigned int program = glCreateProgram();
-	unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
-	unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
-
-	glAttachShader(program, vs);
-	glAttachShader(program, fs);
-	glLinkProgram(program);
-	glValidateProgram(program);
-
-	glDeleteShader(vs);
-	glDeleteShader(fs);
-
-	return program;
-}
-
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
@@ -147,45 +94,22 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	float positions[] = {
-	   -0.5f, -0.5f,
-		0.5f, -0.5f,
-		0.5f,  0.5f,
+	vb = new VertexBuffer(positions, 4 * 2 * sizeof(float));
+	ib = new IndexBuffer(indices, 6);
+	va = new VertexArray();
+	layout = new VertexBufferLayout();
+	shader = new Shader("../res/shaders/basic.shader");
 
-       -0.5f,  0.5f,
-	};
+	layout->Push<float>(2);
+	va->AddBuffer(*vb , *layout);
 
-	unsigned int indices[] = {
-		0, 1, 2,
-		2, 3, 0
-	};
+	shader->Bind();
+	shader->SetUniform4f("u_Color", 0.0f, 0.0f, 0.0f, 0.0f);
 
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	
-	glGenBuffers(1, &buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	glBufferData(GL_ARRAY_BUFFER, 4 * 2 * sizeof(float), positions, GL_STATIC_DRAW);
-
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
-
-	glGenBuffers(1, &ibo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(float), indices, GL_STATIC_DRAW);
-
-	ShaderProgramSource source = ParseShader("../res/shaders/basic.shader");
-
-	shader = CreateShader(source.VertexSource, source.FragmentSource);
-	glUseProgram(shader);
-
-	location = glGetUniformLocation(shader, "u_Color");
-
-
-	glBindVertexArray(0);
-	glUseProgram(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	va->Unbind();
+	vb->Unbind();
+	ib->Unbind();
+	shader->Unbind();
 
 	return SDL_APP_CONTINUE;
 }
@@ -197,15 +121,19 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 	} 
 
 	else if (game_state == PLAYING) {
+
+		float r = 0.0f;
+		float increment = 0.05f;
+		
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		GLClearError();
 
-		glUseProgram(shader);
-		glUniform4f(location, r, 0.0f, 0.0f, 0.0f);
+		shader->Bind();
+		shader->SetUniform4f("u_Color", r, 0.0f, 0.0f, 0.0f);
 
-		glBindVertexArray(vao);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+		va->Bind();
+		ib->Bind();
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
@@ -241,6 +169,11 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-	glDeleteProgram(shader);
+	delete vb;
+	delete ib;
+	delete va;
+	delete layout;
+	delete shader;
+
 	SDL_Quit();
 }
