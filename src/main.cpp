@@ -7,6 +7,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "renderer.h"
+
 typedef enum {
 	MENU,
 	PLAYING,
@@ -112,8 +114,8 @@ static unsigned int CreateShader(const std::string& vertexShader, const std::str
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
-	int height = 1080;
 	int width = 1080;
+	int height = 1080;
 
 	if (!SDL_Init(SDL_INIT_VIDEO)) {
 		SDL_Log("Couldn't initialize : %s ", SDL_GetError());
@@ -163,21 +165,27 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 	
 	glGenBuffers(1, &buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	glBufferData(GL_ARRAY_BUFFER, 6 * 2 * sizeof(float), positions, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 4 * 2 * sizeof(float), positions, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
 
 	glGenBuffers(1, &ibo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(float), indices, GL_STATIC_DRAW);
 
-	ShaderProgramSource source = ParseShader("res/shaders/basic.shader");
+	ShaderProgramSource source = ParseShader("../res/shaders/basic.shader");
 
 	shader = CreateShader(source.VertexSource, source.FragmentSource);
 	glUseProgram(shader);
 
 	location = glGetUniformLocation(shader, "u_Color");
+
+
+	glBindVertexArray(0);
+	glUseProgram(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	return SDL_APP_CONTINUE;
 }
@@ -193,9 +201,11 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 		GLClearError();
 
-		glBindVertexArray(vao);
+		glUseProgram(shader);
+		glUniform4f(location, r, 0.0f, 0.0f, 0.0f);
 
-		glUniform4f(location, r, 1.0f, 1.0f, 1.0f);
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
@@ -231,6 +241,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-	//glDeleteProgram(shader);
+	glDeleteProgram(shader);
 	SDL_Quit();
 }
