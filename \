@@ -1,0 +1,15 @@
+#pragma once
+
+#include <GL/glew.h>
+
+class Error {
+	private:
+	
+	public:
+		static void GLClearError();
+
+		static void GLCheckError();
+};
+
+
+

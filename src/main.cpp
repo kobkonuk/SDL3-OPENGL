@@ -16,7 +16,7 @@
 
 
 typedef enum {
-MENU,
+	MENU,
 	PLAYING,
 	PAUSE,
 	GAME_OVER,
@@ -52,15 +52,6 @@ static unsigned int indices[] = {
 	2, 3, 0
 };
 
-static void GLClearError() {
-	while (glGetError() != GL_NO_ERROR);
-}
-
-static void GLCheckError() {
-	while (GLenum error = glGetError()) {
-		std::cout << "[OpenGL fail] ( " << error << " )" << std::endl;
-	}
-}
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
@@ -101,7 +92,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 	ib = new IndexBuffer(indices, 6);
 	va = new VertexArray();
 	layout = new VertexBufferLayout();
-	shader = new Shader("../res/shaders/basic.shader");
+	shader = new Shader("res/shaders/basic.shader");
 
 	layout->Push<float>(2);
 	va->AddBuffer(*vb , *layout);
