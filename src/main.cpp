@@ -31,6 +31,7 @@ static VertexBuffer* vb = nullptr;
 static IndexBuffer* ib = nullptr;
 static VertexArray* va = nullptr;
 static Shader* shader = nullptr;
+static Renderer* renderer = nullptr;
 
 static SDL_GLContext gl_context;
 
@@ -116,17 +117,13 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 	else if (game_state == PLAYING) {
 	
-		glClear(GL_COLOR_BUFFER_BIT);
+		renderer->Clear();
 
 		GLClearError();
 
 		shader->Bind();
 		shader->SetUniform4f("u_Color", r, 0.0f, 0.0f, 0.0f);
-
-		va->Bind();
-		ib->Bind();
-
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+		renderer->Draw(va, ib, shader);
 
 		if (r > 1.0f)
 			increment = -0.05f;
@@ -165,6 +162,7 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
 	delete va;
 	delete layout;
 	delete shader;
+	delete renderer;
 
 	SDL_Quit();
 }
