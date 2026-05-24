@@ -2,6 +2,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <GL/glew.h>
+#include <STB/stb_image.h>
 
 #include <iostream>
 #include <fstream>
@@ -13,7 +14,7 @@
 #include "indexbuffer.h"
 #include "vertexarray.h"
 #include "shader.h"
-
+#include "texture.h"
 
 typedef enum {
 	MENU,
@@ -32,6 +33,7 @@ static IndexBuffer* ib = nullptr;
 static VertexArray* va = nullptr;
 static Shader* shader = nullptr;
 static Renderer* renderer = nullptr;
+static Texture* texture = nullptr;
 
 static SDL_GLContext gl_context;
 
@@ -41,11 +43,10 @@ static float r = 0.0f;
 static float increment = 0.05f;
 
 static float positions[] = {
-   -0.5f, -0.5f,
-	0.5f, -0.5f,
-	0.5f,  0.5f,
-
-   -0.5f,  0.5f,
+   -0.5f, -0.5f, 0.0f, 0.0f,
+	0.5f, -0.5f, 1.0f, 0.0f,
+	0.5f,  0.5f, 1.0f, 1.0f,
+   -0.5f,  0.5f, 0.0f, 1.0f
 };
 
 static unsigned int indices[] = {
@@ -89,17 +90,25 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	vb = new VertexBuffer(positions, 4 * 2 * sizeof(float));
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	vb = new VertexBuffer(positions, 4 * 4 * sizeof(float));
 	ib = new IndexBuffer(indices, 6);
 	va = new VertexArray();
 	layout = new VertexBufferLayout();
 	shader = new Shader("res/shaders/basic.shader");
+	texture = new Texture("res/textures/cirnoinside.jpg");
 
+	layout->Push<float>(2);	
 	layout->Push<float>(2);
 	va->AddBuffer(*vb , *layout);
 
 	shader->Bind();
 	shader->SetUniform4f("u_Color", 0.0f, 0.0f, 0.0f, 0.0f);
+
+	texture->Bind();
+	shader->SetUniform1i("u_Texture", 0);
 
 	va->Unbind();
 	vb->Unbind();
@@ -163,6 +172,7 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
 	delete layout;
 	delete shader;
 	delete renderer;
+	delete texture;
 
 	SDL_Quit();
 }
