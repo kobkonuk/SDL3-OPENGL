@@ -3,11 +3,14 @@
 #include <SDL3/SDL_main.h>
 #include <GL/glew.h>
 #include <STB/stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "renderer.h"
 #include "vertexbuffer.h"
@@ -57,7 +60,7 @@ static unsigned int indices[] = {
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
-	int width = 1080;
+	int width = 1920;
 	int height = 1080;
 
 	if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -90,14 +93,16 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	vb = new VertexBuffer(positions, 4 * 4 * sizeof(float));
 	ib = new IndexBuffer(indices, 6);
 	va = new VertexArray();
 	layout = new VertexBufferLayout();
-	shader = new Shader("res/shaders/basic.shader");
+	shader = new Shader("res/shaders/basic.shader");	
 	texture = new Texture("res/textures/cirnoinside.jpg");
 
 	layout->Push<float>(2);	
@@ -106,6 +111,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
 	shader->Bind();
 	shader->SetUniform4f("u_Color", 0.0f, 0.0f, 0.0f, 0.0f);
+	shader->SetUniformMat4f("u_MVP", proj);
 
 	texture->Bind();
 	shader->SetUniform1i("u_Texture", 0);
