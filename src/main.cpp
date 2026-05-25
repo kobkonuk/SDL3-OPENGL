@@ -40,11 +40,6 @@ static Texture* texture = nullptr;
 
 static SDL_GLContext gl_context;
 
-static int location;
-
-static float r = 0.0f;
-static float increment = 0.05f;
-
 static float positions[] = {
    -0.5f, -0.5f, 0.0f, 0.0f,
 	0.5f, -0.5f, 1.0f, 0.0f,
@@ -110,7 +105,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 	va->AddBuffer(*vb , *layout);
 
 	shader->Bind();
-	shader->SetUniform4f("u_Color", 0.0f, 0.0f, 0.0f, 0.0f);
 	shader->SetUniformMat4f("u_MVP", proj);
 
 	texture->Bind();
@@ -137,16 +131,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 		GLClearError();
 
 		shader->Bind();
-		shader->SetUniform4f("u_Color", r, 0.0f, 0.0f, 0.0f);
 		renderer->Draw(va, ib, shader);
 
-		if (r > 1.0f)
-			increment = -0.05f;
-		else if (r < 0.0f)
-			increment = 0.05f;
-
-		r += increment;
-		
 		GLCheckError();
 
 		SDL_GL_SwapWindow(window);
