@@ -2,21 +2,9 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <GL/glew.h>
-#include <STB/stb_image.h> // Don't copy this. I did some bullshit. Just follow STB_image documentation
+#include <STB/stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-//Taking a break to brush up on my fundamentals
-//
-//ill make it public just in case someone wants a basic framework on how to start 
-//making OpenGL projects using SDL3
-//
-//Learnt a lot from TheChernos OpenGL tutorial, this project took a lot from him
-//except that this one doesnt use GLFW and i do some other BS 
-//
-//Watch his tutorials to figure out what im doing here
-//
-//on break from 27/5/2026 - 1/1/2077
 
 #include <iostream>
 #include <fstream>
@@ -42,7 +30,6 @@ typedef enum {
 static GameState game_state = PLAYING;
 static SDL_Window *window = nullptr;
 
-//ik this is ugly
 static VertexBufferLayout* layout = nullptr;
 static VertexBuffer* vb = nullptr;
 static IndexBuffer* ib = nullptr;
@@ -52,6 +39,18 @@ static Renderer* renderer = nullptr;
 static Texture* texture = nullptr;
 
 static SDL_GLContext gl_context;
+
+static float positions[] = {
+   -0.5f, -0.5f, 0.0f, 0.0f,
+	0.5f, -0.5f, 1.0f, 0.0f,
+	0.5f,  0.5f, 1.0f, 1.0f,
+   -0.5f,  0.5f, 0.0f, 1.0f
+};
+
+static unsigned int indices[] = {
+	0, 1, 2,
+	2, 3, 0
+};
 
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
@@ -80,52 +79,33 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
 	gl_context = SDL_GL_CreateContext(window);
 
-	if (!SDL_GL_SetSwapInterval(-1))
+	if (SDL_GL_SetSwapInterval(-1) < 0)
 		SDL_GL_SetSwapInterval(1);
 
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK)
-		std::cout << "GLEW_NOT_OK" << std::endl; //why is glew not ok?? glew_ok? why is it called  GLEW_OK who decided that
-
-	glViewport(0, 0, 1920, 1080);
+		std::cout << "GLEW_NOT_OK" << std::endl;
 
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	float positions[] = {
-	    540.0f,  540.0f, 0.0f, 0.0f,
-		800.0f,  540.0f, 1.0f, 0.0f,
-		800.0f,  800.0f, 1.0f, 1.0f,
-	    540.0f,  800.0f, 0.0f, 1.0f
-	};
-
-	unsigned int indices[] = {
-		0, 1, 2,
-		2, 3, 0
-	};
-
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	
+
 	vb = new VertexBuffer(positions, 4 * 4 * sizeof(float));
 	ib = new IndexBuffer(indices, 6);
 	va = new VertexArray();
 	layout = new VertexBufferLayout();
 	shader = new Shader("res/shaders/basic.shader");	
 	texture = new Texture("res/textures/cirnoinside.jpg");
-	renderer = new Renderer();
 
 	layout->Push<float>(2);	
 	layout->Push<float>(2);
 	va->AddBuffer(*vb , *layout);
 
-	glm::mat4 proj = glm::ortho(0.0f, 1920.0f, 0.0f, 1080.0f, -1.0f, 1.0f);
-	glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(-100, 0, 0));
-	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(200, 200, 0));
-
-	glm::mat4 mvp = proj * view * model;
-
+	glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);
+	
 	shader->Bind();
-	shader->SetUniformMat4f("u_MVP", mvp);
+	shader->SetUniformMat4f("u_MVP", proj);
 
 	texture->Bind();
 	shader->SetUniform1i("u_Texture", 0);
@@ -141,7 +121,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 SDL_AppResult SDL_AppIterate(void *appstate) {
 	
 	if (game_state == MENU) {
-		std::cout << "hello cro" << std::endl;  // Im sorry LOL	
+		std::cout << "hello cro" << std::endl;	
 	} 
 
 	else if (game_state == PLAYING) {
@@ -178,24 +158,13 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-	//Writing a cool for loop is cleaner. But not safe enough
-	//Im not risking any memory leaks. its not worth it
-	//stupid baka pointers
-
 	delete vb;
-	vb = nullptr;
 	delete ib;
-	ib = nullptr;
 	delete va;
-	va = nullptr;
 	delete layout;
-	layout = nullptr;
 	delete shader;
-	shader = nullptr;
 	delete renderer;
-	renderer = nullptr;
 	delete texture;
-	texture = nullptr;
 
 	SDL_Quit();
 }
