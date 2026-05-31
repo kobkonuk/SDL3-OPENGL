@@ -1,5 +1,4 @@
-I gave up on this because I think I need better fundamentals before doing any big project whatsoever.
-
+im returning to this because im bored and i dont have anything else to do
 
 For everybody else, just use what I made as a framework incase you want to incorporate OpenGL into SDL3.
 

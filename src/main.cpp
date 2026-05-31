@@ -1,22 +1,15 @@
 #define  SDL_MAIN_USE_CALLBACKS
+#define  STB_IMAGE_IMPLEMENTATION
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <GL/glew.h>
-#include <STB/stb_image.h> // Don't copy this. I did some bullshit. Just follow STB_image documentation
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-//Taking a break to brush up on my fundamentals
-//
-//ill make it public just in case someone wants a basic framework on how to start 
-//making OpenGL projects using SDL3
-//
-//Learnt a lot from TheChernos OpenGL tutorial, this project took a lot from him
-//except that this one doesnt use GLFW and i do some other BS 
-//
-//Watch his tutorials to figure out what im doing here
-//
-//on break from 27/5/2026 - 1/1/2077
+#include "../vendor/imgui.h"
+#include "../vendor/imgui_impl_sdl3.h"
+#include "../vendor/imgui_impl_opengl3.h"
+#include "../vendor/stb_image.h"
 
 #include <iostream>
 #include <fstream>
@@ -39,7 +32,7 @@ typedef enum {
 	WIN,
 } GameState;
 
-static GameState game_state = PLAYING;
+static GameState game_state = MENU;
 static SDL_Window *window = nullptr;
 
 //ik this is ugly
@@ -85,11 +78,31 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK)
-		std::cout << "GLEW_NOT_OK" << std::endl; //why is glew not ok?? glew_ok? why is it called  GLEW_OK who decided that
+		std::cout << "GLEW_NOT_OK" << std::endl; 
 
 	glViewport(0, 0, 1920, 1080);
 
 	std::cout << glGetString(GL_VERSION) << std::endl;
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	//void(io);
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+	ImGui::StyleColorsDark();
+
+	ImGuiStyle& = ImGui::GetStyle();
+	style.ScaleAllSizes(main_scale);
+	style.FontScaleDpi = main_scale;
+
+	ImGui_ImplSDL3_InitForOpenGL(window, gl_context);
+	ImGui_ImplOpenGL3_Init("version 330 core");
+
+	bool show_demo_window = true;
+	bool show_another_window = false;
+	ImVec4 clear_color = ImVec4(0.5f, 0.5f, 0.5, 0.7f);
+
 
 	float positions[] = {
 	    540.0f,  540.0f, 0.0f, 0.0f,
@@ -141,7 +154,12 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 SDL_AppResult SDL_AppIterate(void *appstate) {
 	
 	if (game_state == MENU) {
-		std::cout << "hello cro" << std::endl;  // Im sorry LOL	
+		
+		renderer->Clear();
+
+		GLClearError();
+
+		SDL_GL_SwapWindow(window);
 	} 
 
 	else if (game_state == PLAYING) {
@@ -179,23 +197,21 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
 	//Writing a cool for loop is cleaner. But not safe enough
-	//Im not risking any memory leaks. its not worth it
-	//stupid baka pointers
+	//Im not risking any memory leaks. its not worth it. no im just scared. too scared. im a coward.
 
 	delete vb;
-	vb = nullptr;
 	delete ib;
-	ib = nullptr;
 	delete va;
-	va = nullptr;
 	delete layout;
-	layout = nullptr;
 	delete shader;
-	shader = nullptr;
 	delete renderer;
-	renderer = nullptr;
-	delete texture;
-	texture = nullptr;
+	delete texture;	
 
+	ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext();
+
+	SDL_GL_DestroyContext(gl_context);
+	SDL_DestroyWindow(window);
 	SDL_Quit();
 }
