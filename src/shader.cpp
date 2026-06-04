@@ -1,11 +1,14 @@
 #include "shader.h"
 
-#include <GL/glew.h>
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
+
+static glm::mat4 proj;
+static glm::mat4 view;
+static glm::mat4 model;
+static glm::mat4 mvp;
 
 Shader::Shader(const std::string& filepath)
 	: m_FilePath(filepath), m_RendererID(0) {
@@ -97,6 +100,16 @@ void Shader::Unbind() const {
 	glUseProgram(0);
 }
 
+void Shader::GLMInit() {
+	proj = glm::ortho(0.0f, 1920.0f, 0.0f, 1080.0f, -1.0f, 1.0f);
+	view = glm::translate(glm::mat4(1.0f), glm::vec3(-100, 0, 0));
+}
+
+void Shader::GLMCalc(int posx, int posy) {
+	model = glm::translate(glm::mat4(1.0f), glm::vec3(posx, posy, 0));
+	mvp = proj * view * model;
+}
+
 void Shader::SetUniform1i(const std::string& name, int value) {
 	glUniform1i(GetUniformLocation(name), value);
 }
@@ -109,8 +122,9 @@ void Shader::SetUniform4f(const std::string& name, float v0, float v1, float v2,
 	glUniform4f(GetUniformLocation(name), v0, v1, v2, v3);
 }
 
-void Shader::SetUniformMat4f(const std::string& name, const glm::mat4& matrix) {
-	glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE,  &matrix[0][0]);
+void Shader::SetUniformMat4f(const std::string& name) {
+	glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE,  &mvp[0][0]);
+	std::cout << &mvp[0][0] << std::endl;
 }
 
 int Shader::GetUniformLocation(const std::string& name) {
@@ -123,4 +137,8 @@ int Shader::GetUniformLocation(const std::string& name) {
 
 	m_UniformLocationCache[name] = location;
 	return  location;
+}
+
+void Shader::GLMKill() {
+	std::cout << "hello";
 }

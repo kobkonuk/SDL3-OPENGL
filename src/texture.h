@@ -1,6 +1,8 @@
 #pragma once
 #include "renderer.h"
 
+#include "../vendor/stb_image.h"
+
 class Texture {
 	private:
 		unsigned int m_RendererID;

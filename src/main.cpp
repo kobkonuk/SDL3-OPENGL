@@ -3,13 +3,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <GL/glew.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include "../vendor/imgui.h"
-#include "../vendor/imgui_impl_sdl3.h"
-#include "../vendor/imgui_impl_opengl3.h"
-#include "../vendor/stb_image.h"
 
 #include <iostream>
 #include <fstream>
@@ -84,25 +77,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	//void(io);
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-
-	ImGui::StyleColorsDark();
-
-	ImGuiStyle& = ImGui::GetStyle();
-	style.ScaleAllSizes(main_scale);
-	style.FontScaleDpi = main_scale;
-
-	ImGui_ImplSDL3_InitForOpenGL(window, gl_context);
-	ImGui_ImplOpenGL3_Init("version 330 core");
-
-	bool show_demo_window = true;
-	bool show_another_window = false;
-	ImVec4 clear_color = ImVec4(0.5f, 0.5f, 0.5, 0.7f);
-
+	renderer->ImGuiInit(window, gl_context);
 
 	float positions[] = {
 	    540.0f,  540.0f, 0.0f, 0.0f,
@@ -127,18 +102,14 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 	texture = new Texture("res/textures/cirnoinside.jpg");
 	renderer = new Renderer();
 
+	shader->GLMInit();	
+
 	layout->Push<float>(2);	
 	layout->Push<float>(2);
 	va->AddBuffer(*vb , *layout);
 
-	glm::mat4 proj = glm::ortho(0.0f, 1920.0f, 0.0f, 1080.0f, -1.0f, 1.0f);
-	glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(-100, 0, 0));
-	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(200, 200, 0));
-
-	glm::mat4 mvp = proj * view * model;
-
 	shader->Bind();
-	shader->SetUniformMat4f("u_MVP", mvp);
+	shader->SetUniformMat4f("u_MVP");
 
 	texture->Bind();
 	shader->SetUniform1i("u_Texture", 0);
@@ -159,6 +130,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 		GLClearError();
 
+		renderer->ImGuiDraw();
+
 		SDL_GL_SwapWindow(window);
 	} 
 
@@ -167,6 +140,10 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 		renderer->Clear();
 
 		GLClearError();
+
+		renderer->ImGuiDraw();
+
+		shader->GLMCalc(200, 200);
 
 		shader->Bind();
 		renderer->Draw(va, ib, shader);
@@ -180,7 +157,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-	
+
+	renderer->ImGuiEvent(event);
 	if (event->type == SDL_EVENT_QUIT) {
 		return SDL_APP_SUCCESS;
 	}
@@ -196,8 +174,13 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
+	renderer->ImGuiDELETEandKILL();
+	SDL_GL_DestroyContext(gl_context);
+	SDL_DestroyWindow(window);
+
 	//Writing a cool for loop is cleaner. But not safe enough
-	//Im not risking any memory leaks. its not worth it. no im just scared. too scared. im a coward.
+	//Im not risking any memory leaks. its not worth it. no im just scared. 
+	//too scared. im a coward.
 
 	delete vb;
 	delete ib;
@@ -207,11 +190,5 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
 	delete renderer;
 	delete texture;	
 
-	ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
-    ImGui::DestroyContext();
-
-	SDL_GL_DestroyContext(gl_context);
-	SDL_DestroyWindow(window);
 	SDL_Quit();
 }
